@@ -1,5 +1,4 @@
 <?php
-// $Id: og_defaults.module,v 1.1.2.5 2010/08/13 00:28:56 kaleworsley Exp $
 
 /**
  * @file
@@ -13,7 +12,8 @@
  */
 function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
   array_unshift($form['#submit'], 'og_defaults_node_type_form_submit');
-  
+  array_unshift($form['#validate'], 'og_defaults_node_type_form_validate');
+
   // Built in content types do not allow changes to type machine name.
   if (isset($form['identity']['type']['#default_value'])) {
     $type = $form['identity']['type']['#default_value'];
@@ -23,7 +23,7 @@ function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
   }
 
   if (og_is_group_type($type)) {
-  
+
     foreach (og_get_types('group_post') as $post_type) {
       $group_post_types[$post_type] = node_get_types('name', $post_type);
     }
@@ -35,6 +35,31 @@ function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
     );
 
     // Membership requests
+    // Membership requests restriction
+    // increment the array keys because checkboxes seems to ignore 0 key
+    $tmp_membership_requests_type = og_selective_map();
+    $i = 1;
+    $j = 0;
+
+    for ($i, $j; $j < count($tmp_membership_requests_type); $i++, $j++) {
+      $membership_requests_type[$i] = $tmp_membership_requests_type[$j];
+    }
+
+    $form['og']['og_defaults_settings']['og_membership_requests_restriction'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Membership requests restriction'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE
+    );
+
+    $form['og']['og_defaults_settings']['og_membership_requests_restriction']['og_membership_requests_restriction'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Membership requests restriction'),
+      '#default_value' => variable_get('og_membership_requests_restriction_'. $type, array()),
+      '#options' => $membership_requests_type,
+      '#description' => t('Which membership request options should be available for this group type? Leave blank to keep the original behavior. <strong>Make sure that the following default value is included in the types chosen</strong>.')
+    );
+
     $form['og']['og_defaults_settings']['og_selective'] = array(
       '#type' => 'fieldset',
       '#title' => t('Membership requests'),
@@ -143,7 +168,7 @@ function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
       );
     }
 
-    // Audience checkboxes    
+    // Audience checkboxes
     $form['og']['og_defaults_settings']['og_audience'] = array(
       '#type' => 'fieldset',
       '#title' => t('Audience checkboxes'),
@@ -157,6 +182,21 @@ function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
       '#options' => $group_post_types,
       '#default_value' => variable_get('og_audience_'. $type, array()),
       '#description' => t('Select group post forms for which the Audience checkboxes shall be <strong>invisible</strong>.'),
+    );
+
+    // Public checkbox
+    $form['og']['og_defaults_settings']['og_public'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Public checkbox'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE
+    );
+    $form['og']['og_defaults_settings']['og_public']['og_public'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Public checkbox'),
+      '#options' => $group_post_types,
+      '#default_value' => variable_get('og_public_'. $type, array()),
+      '#description' => t('Select group post forms for which the Public checkbox shall be ckecked by default.'),
     );
 
     // Description
@@ -215,7 +255,7 @@ function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
       }
     }
 
-    // Menu    
+    // Menu
     if (module_exists('og_menu')) {
       $form['og']['og_defaults_settings']['og_menu'] = array(
         '#type' => 'fieldset',
@@ -273,6 +313,31 @@ function og_defaults_form_node_type_form_alter(&$form, &$form_state) {
     }
   }
 }
+
+/**
+ * Validation handler for node type forms
+ */
+function og_defaults_node_type_form_validate($form, &$form_state) {
+  // Built in content types do not allow changes to type machine name.
+  if (isset($form['identity']['type']['#default_value'])) {
+    $type = $form['identity']['type']['#default_value'];
+  }
+  else {
+    $type = $form['identity']['type']['#value'];
+  }
+
+  if (og_is_group_type($type)) {
+
+    if (array_sum($form_state['values']['og_membership_requests_restriction']) > 0 && $form_state['values']['og_selective_enforce'] == 1) {
+      form_set_error('og_membership_requests_restriction', 'If you enforce the "Membership request" setting, restricting the options is not necessary.');
+    }
+    if (array_sum($form_state['values']['og_membership_requests_restriction']) > 0 && !empty($form_state['values']['og_membership_requests_restriction']) && !in_array($form_state['values']['og_selective'] + 1, $form_state['values']['og_membership_requests_restriction'])) {
+      form_set_error('og_selective', 'The default "Membership requests" type is not within the allowed options');
+    }
+
+  }
+}
+
 /**
  * Sumbit handler for node type forms
  */
@@ -291,7 +356,8 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
     $node = $form['#node'];
     // Group nodes
     if (og_is_group_type($node->type)) {
-
+      //OG Membership requests restriction
+      $og_membership_requests_restriction = variable_get('og_membership_requests_restriction_'. $node->type, array());
       //OG Selective
       $og_selective = variable_get('og_selective_'. $node->type, OG_OPEN);
       //OG Register
@@ -323,7 +389,20 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
         $form['og_selective']['#value'] = $og_selective;
       }
       else {
-        $form['og_selective']['#default_value'] = ($node->og_selective) ? $node->og_selective : $og_selective;
+
+        if (!empty($og_membership_requests_restriction)) {
+
+          foreach ($form['og_selective']['#options'] as $key => $value) {
+
+            if (!in_array($key + 1, $og_membership_requests_restriction)) {
+              unset($form['og_selective']['#options'][$key]);
+            }
+
+          }
+
+        }
+
+        $form['og_selective']['#default_value'] = (isset($node->og_selective)) ? $node->og_selective : $og_selective;
       }
 
       if (variable_get('og_register_enforce_'. $node->type, FALSE) && !user_access('administer organic groups')) {
@@ -331,7 +410,7 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
         $form['og_register']['#value'] = $og_register;
       }
       else {
-        $form['og_register']['#default_value'] = ($node->og_register) ? $node->og_register : $og_register;
+        $form['og_register']['#default_value'] = (isset($node->og_register)) ? $node->og_register : $og_register;
       }
 
       if (variable_get('og_directory_enforce_'. $node->type, FALSE) && !user_access('administer organic groups')) {
@@ -339,7 +418,7 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
         $form['og_directory']['#value'] = $og_directory;
       }
       else {
-        $form['og_directory']['#default_value'] = ($node->og_directory) ? $node->og_directory : $og_directory;
+        $form['og_directory']['#default_value'] = (isset($node->og_directory)) ? $node->og_directory : $og_directory;
       }
 
       if (variable_get('og_theme_enforce_'. $node->type, FALSE) && !user_access('administer organic groups')) {
@@ -350,7 +429,7 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
         );
       }
       else {
-        $form['themes']['theme']['#default_value'] = ($node->og_theme) ? $node->og_theme : $og_theme;
+        $form['themes']['theme']['#default_value'] = (isset($node->og_theme)) ? $node->og_theme : $og_theme;
       }
 
       if (variable_get('og_description_enforce_'. $node->type, FALSE) && !user_access('administer organic groups')) {
@@ -361,7 +440,7 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
         if (user_access('administer organic groups') || variable_get('og_description_optional_'. $node->type, FALSE)) {
           $form['og_description']['#required'] = FALSE;
         }
-        $form['og_description']['#default_value'] = ($node->og_description) ? $node->og_description : $og_description;
+        $form['og_description']['#default_value'] = (isset($node->og_description)) ? $node->og_description : $og_description;
       }
 
       if (module_exists('locale')) {
@@ -370,7 +449,7 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
           $form['og_language']['#value'] = $og_language;
         }
         else {
-          $form['og_language']['#default_value'] = ($node->og_language) ? $node->og_language : $og_language;
+          $form['og_language']['#default_value'] = (isset($node->og_language)) ? $node->og_language : $og_language;
         }
       }
 
@@ -380,7 +459,7 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
           $form['og_menu']['#value'] = $og_menu;
         }
         else {
-          $form['og_menu']['#default_value'] = ($node->og_menu) ? $node->og_menu : $og_menu;
+          $form['og_menu']['#default_value'] = (isset($node->og_menu)) ? $node->og_menu : $og_menu;
         }
       }
 
@@ -390,30 +469,42 @@ function og_defaults_form_alter(&$form, &$form_state, $form_id) {
           $form['og_private']['#value'] = $og_private;
         }
         else {
-          $form['og_private']['#default_value'] = ($node->og_private) ? $node->og_private : $og_private;
+          $form['og_private']['#default_value'] = (isset($node->og_private)) ? $node->og_private : $og_private;
         }
       }
     }
-    
+
     // Post nodes
     if (og_is_group_post_type($node->type)) {
       $group = og_determine_context();
-      if (in_array($node->type, array_filter(variable_get('og_audience_'. $group->type, array())))) {
 
-        $form['og_nodeapi']['visible']['og_groups_visible'] = array(
-          '#type' => 'item', 
-          '#title' => t('Audience'), 
-          '#value' => $group->title,
-        );
+      if ($group) {
+        // Audience Checkboxes
+        if (in_array($node->type, array_filter(variable_get('og_audience_'. $group->type, array())))) {
+          $form['og_nodeapi']['visible']['og_groups_visible'] = array(
+            '#type' => 'item',
+            '#title' => t('Audience'),
+            '#value' => $group->title,
+          );
 
-        $form['og_nodeapi']['invisible']['og_groups'] = array(
-          '#type' => 'value',
-          '#value' => array($group->nid),
-        );
+          $form['og_nodeapi']['invisible']['og_groups'] = array(
+            '#type' => 'value',
+            '#value' => array($group->nid),
+          );
 
-        $form['#submit'][] = 'og_defaults_group_post_form_submit';
+          $form['#submit'][] = 'og_defaults_group_post_form_submit';
 
-        unset($form['og_nodeapi']['visible']['og_groups']);
+          unset($form['og_nodeapi']['visible']['og_groups']);
+        }
+
+        // Public Checkbox
+        if (in_array($node->type, array_filter(variable_get('og_public_'. $group->type, array())))) {
+          if (in_array($node->type, array_filter(variable_get('og_audience_'. $group->type, array())))
+            || (is_array($form['og_nodeapi']['visible']['og_groups']['#default_value'])
+              && count(array_filter($form['og_nodeapi']['visible']['og_groups']['#default_value'])) > 0)) {
+            $form['og_nodeapi']['visible']['og_public']['#default_value'] = 1;
+          }
+        }
       }
     }
   }

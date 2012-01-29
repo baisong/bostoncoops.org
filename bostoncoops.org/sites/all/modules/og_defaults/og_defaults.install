@@ -1,5 +1,4 @@
 <?php
-// $Id: og_defaults.install,v 1.1.2.1 2010/08/13 00:28:56 kaleworsley Exp $
 
 /**
  * @file
@@ -39,7 +38,7 @@ function og_defaults_uninstall() {
     'og_menu_enforce',
     'og_audience'
   );
-  
+
   foreach (og_get_types('group') as $type) {
     foreach ($variables as $variable) {
       variable_del("{$variable}_{$type}");
