@@ -1,0 +1,54 @@
+<?php
+// $Id$
+ 
+/**
+ * @file
+ * Drupal Module: mysite
+ * Adds custom code specific to this Drupal 6 site.
+ */
+
+function branchez_form_alter(&$form, $form_state, $form_id) {
+  //drupal_set_message("Form ID is : " . $form_id);
+  //drupal_set_message(print_R($form, TRUE));
+  switch ($form_id) {
+    case 'user_register':
+  		$form['submit'] = array
+  		(
+			'#type' => 'submit',
+			'#id' => 'confirm_submit',
+			'#value' => t("Start branching out!"),
+		);
+    break;
+     case 'user_profile_form':
+  		$form['contact']['#type'] = 'hidden';
+  		$form['timezone']['#type'] = 'hidden';
+    break;
+    case 'community_node_form':
+    	if (arg(0) == 'add' && arg(1) == 'community') {
+  			$form['body_field']['body']['#rows'] = 5;
+  			//drupal_set_message(print_r($form,true));
+  		}
+    break;
+    /*default:
+    	drupal_set_message("no work...");
+    break;*/
+  }
+}
+
+function branchez_user($op, &$edit, &$account, $category = NULL) {
+	if ($op == 'login') {
+		if (!empty($edit)) { //this if is to prevent redirect when resetting password from email link.
+			drupal_goto('home');
+		}
+		/* 
+		global $user;
+		if (in_array('rolename',$user->roles)) {
+			drupal_goto('dash');
+		} else if ... */
+	}
+}
+
+function population_tally() {
+return db_result(db_query("SELECT SUM(node_data_field_population.field_population_value) FROM newnode node  LEFT JOIN newcontent_type_community node_data_field_population ON node.vid = node_data_field_population.vid LEFT JOIN newlocation_instance location_instance ON node.vid = location_instance.vid LEFT JOIN newlocation location ON location_instance.lid = location.lid WHERE node.type in ('community')"));
+
+}

@@ -1,0 +1,5 @@
+name = Branchez
+description = Provides miscellaneous custom functionality and utility functions for this site
+core = 6.x
+
+package = BRANCHES

@@ -1,0 +1,372 @@
+<?php
+// $Id: family.module,v 1.13 2010/03/04 13:20:32 jerdiggity Exp $
+
+/**
+ * @file
+ * Family module - display and manage family tree data
+ *
+ * Current features:
+ * - Individuals saved as nodes
+ * - Editing for Individuals records
+ * - Groups saved as nodes
+ * - Editing for Groups records
+ * - Locations saved as nodes
+ * - Editing for Locations records
+ */
+
+$path = drupal_get_path('module', 'family');
+  require_once "$path/import.inc";
+  require_once "$path/view.inc";
+  require_once "$path/family.views.inc";
+  require_once "$path/family.views_default.inc";
+  require_once "$path/EstimateDates.inc";
+  require_once "$path/individual.inc";
+  require_once "$path/location.inc";
+//  require_once "$path/source.inc";
+  require_once "$path/group.inc";
+  require_once "$path/tree.inc";
+  require_once "$path/common.inc";
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function family_menu() {
+  $items = array();
+        $items['admin/content/family_import'] = array(
+    'title' => 'Family Import', 
+    'description' => 'Import your family tree from a standard GED file .', 
+            'page callback' => 'family_import', 
+            'access arguments' => array('administer family'), 
+    );
+        $items['admin/content/family_import_done'] = array(
+    'title' => 'Family Import', 
+    'description' => 'Import your family tree from a standard GED file .', 
+            'page callback' => 'family_import_done', 
+            'access arguments' => array('administer family'), 
+            'type' => MENU_CALLBACK, 
+    );
+/*        $items['admin/settings/family_privacy'] = array(
+*    'title' => 'Family Privacy', 
+*    'description' => 'Protect your important family data by running this privacy script', 
+*            'page callback' => 'family_auto_privacy', 
+*            'access arguments' => array('administer family'), 
+*    );
+*        $items['admin/content/family_privacy_done'] = array(
+*    'title' => 'Family Import', 
+*    'description' => 'Import your family tree from a standard GED file .', 
+*            'page callback' => 'family_auto_privacy_done', 
+*            'access arguments' => array('administer family'), 
+*            'type' => MENU_CALLBACK, 
+*    );
+*/      $items['node/%/tree/asc'] = array(
+        'title' => 'Ascendants', 
+            'page callback' => 'family_view_tree_asc', 
+            'page arguments' => array(1), 
+            'type' => MENU_LOCAL_TASK, 
+            'access callback'   => 'family_individual_check_type', 
+            'access arguments' => array(1), 
+    );
+    $items['node/%/tree/desc'] = array(
+        'title' => 'Descendants', 
+            'page callback' => 'family_view_tree_desc', 
+            'page arguments' => array(1), 
+        'type' => MENU_LOCAL_TASK, 
+            'access callback'   => 'family_individual_check_type', 
+            'access arguments' => array(1), 
+    );
+   return $items;
+} // function family_menu()
+
+function family_individual_check_type($nid) {
+  if (is_numeric($nid)) {
+    $node = node_load($nid);
+    if ($node->type == 'family_individual') {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implementation of hook_info().
+ */
+function family_node_info() {
+  return array(
+    'family_individual' => array(
+      'name' => t('Family: Individual'), 
+      'module' => 'family_individual', 
+      'description' => t('A node representing a person .'), 
+      'has_title' => TRUE, 
+      'title_label' => t('Title'), 
+      'has_body' => TRUE, 
+      'body_label' => t('Biography'), 
+    ), 
+  'family_group' => array(
+    'name' => t('Family: Group'), 
+    'module' => 'family_group', 
+    'description' => t('A node representing a single grouping of parents and children .'), 
+      'has_title' => TRUE, 
+      'title_label' => t('Title'), 
+      'has_body' => TRUE, 
+      'body_label' => t('Body'), 
+  ), 
+    'family_location' => array(
+      'name' => t('Family: Location'), 
+      'module' => 'family_location', 
+      'description' => t('A geneological location .'), 
+      'has_title' => TRUE, 
+      'title_label' => t('Title'), 
+      'has_body' => TRUE, 
+      'body_label' => t('Body'), 
+    ), 
+  );
+}
+
+/**
+* Display help and module information
+* @param section which section of the site we're displaying help
+* @return help text for section
+*/
+function family_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/modules#description":
+      $output = t("A jolly exciting module for recording and archiving all
+                   aspects of your family's history.");
+      break;
+    case "node/add#family_individual":
+      $output = t("A record of a single person.  Part of the Family module.");
+      break;
+  case "node/add#family_group":
+    $output = t("A record of a single grouping of parents and their children.  Part of the family module");
+    break;
+    case "node/add#family_location":
+      $output = t("A record of a single location, which may be contained
+                   in other locations in a hierarchy.  Part of the Family
+                   module.");
+      break;
+    }
+    return $output;
+} // function family_help($section='')
+
+/**
+ * Implementation of hook_perm().
+ */
+function family_perm() {
+  return array(
+    'access family nodes', 
+    'access family private records', 
+    'create family nodes', 
+    'edit family nodes', 
+    'edit own family nodes', 
+    'administer family'
+  );
+}
+
+/**
+ * Implementation of hook_access().
+ */
+function family_access($op, $node, $account) {
+  global $user;
+
+  if ($op == 'create') {
+    return user_access('create family nodes');
+  }
+
+  if ($op == 'update' || $op == 'delete') {
+    if (user_access('edit own family nodes') && ($user->uid == $node->uid)) {
+      return TRUE;
+    }
+  if (user_access('edit family nodes')) {
+    return TRUE;
+  }
+  }
+  if ($op == 'view') {
+  return (user_access('access family nodes'));
+  }
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function family_user($type, &$edit, &$user) {
+
+  switch ($type) {
+
+  case ('insert'):
+  case ('update'):
+  case ('submit'):
+  case ('login'):
+  case ('logout'):
+  case ('delete'):
+     break;
+
+  case ('form'):
+if ($edit['family_tree_root']=='') {
+$edit['family_tree_root']=$edit['family_link'];
+}
+if ($edit['family_tree_depth']=='') {
+$edit['family_tree_depth']=3;
+}
+  $form['family'] = array(
+    '#type' => 'fieldset', 
+    '#title' => t('Family information'), 
+    '#collapsible' => TRUE, 
+    '#weight' => 4);
+    $results = db_query("SELECT * FROM {family_individual}");
+    $listoptionsalive=array();
+    while ($indi = db_fetch_array($results)) {
+      //$deathfacts = family_getfacts($indi['fid']);
+      if (($indi['deathdate'])==''||($indi['deathdate'])=='0000-00-00 00:00:00') {
+        $listoptionsalive[$indi['nid']]=$indi['title_format'];
+      }
+    }
+  $results = db_query("SELECT * FROM {family_individual}");
+    $listoptions=array();
+    while ($indi = db_fetch_array($results)) {
+      $listoptions[$indi['nid']]=$indi['title_format'];
+    }
+
+  $form['family']['family_link'] = array(
+    '#type' => 'select', 
+    '#options' => array('' => t('None of these'), t('Individuals') => $listoptionsalive, ), 
+    '#title' => t('My family link'), 
+    '#default_value' => $edit['family_link'], 
+    '#description' => t('Choose the person that represents you in the family tree'));
+  $form['family']['family_tree_root'] = array(
+    '#type' => 'select', 
+    '#options' => array('' => t('None of these'), t('Individuals') => $listoptions, ), 
+    '#title' => t('Tree root individual'), 
+    '#default_value' => $edit['family_tree_root'], 
+    '#description' => t('Choose the person that you want the tree that is linked to your profile to be based on'));
+  $form['family']['family_tree_type'] = array(
+    '#type' => 'select', 
+    '#options' => array(
+      'asc' => 'Ancestry', 
+      'desc' => 'Descendency', 
+    ), 
+    '#default_value' => $edit['family_tree_type'], 
+    '#description' => t('The type of tree that your profile tree is based on'));
+  $form['family']['family_tree_depth'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Generations in tree'), 
+    '#default_value' => $edit['family_tree_depth'], 
+    '#description' => t('The number of degrees to show on your profile family tree .'));
+    return $form;
+  break;
+
+  case ('view'):
+    if ($user && user_access('access family nodes')) {
+    $user->content['family'] = array(
+      '#type' => 'user_profile_category', 
+      '#title' => t("Family Association"), 
+      '#weight' => 3, 
+    );
+    $user->content['family']['link'] =  array(
+      '#type' => 'user_profile_item', 
+      '#title' => t("My family link"), 
+      '#value' => l("Me", "node/". $user->family_link), 
+      '#weight' => 1, 
+    );
+    $user->content['family']['tree'] =  array(
+      '#type' => 'user_profile_item', 
+      '#title' => t('My family tree'), 
+      '#value' => l('My family tree', 'node/'. $user->family_tree_root. 'tree/'. $user->family_tree_type, array('html' => 'TRUE', 'query' => 'len='. $user->family_tree_depth)), 
+      '#weight' => 2, 
+    );
+    }
+  }
+}
+
+/**
+ * Check if record $nid is private.
+ */
+function family_check_privacy($nid) {
+  $privacy=db_result(db_query("SELECT privacy FROM {family_individual} WHERE nid=%d", $nid));
+  if ($privacy) {
+  
+  }else {
+    $privacy=0;
+  }
+  if (($privacy==1) || ($privacy==3)) {
+    return user_access('access family');
+  }
+  else {
+    return user_access('access family private records');
+  }
+}
+/**
+ * Implementation of the token.module's hook_token_values().
+ *
+ * @param $type
+ *   The current context -- 'node', 'user', 'global', etc.
+ * @param $object
+ *   The specific node, user, etc. that should be used as the basis for the
+ *   replacements.
+ * @return
+ *   Array of tokens.
+ */
+function family_token_values($type, $object = NULL, $options = array()) {
+  if ($type == 'node' && $node->type == 'family_individual') {
+    $node = $object;
+  $tokens['family-individual-firstname'] = check_plain($node->FORE);
+  $tokens['family-individual-middlename'] = check_plain($node->MIDN);
+  $tokens['family-individual-lastname'] = check_plain($node->SURN);
+  $tokens['family-individual-birthdate'] = check_plain($node->BIRT_DATE);
+  $tokens['family-individual-birthplace'] = check_plain($node->BIRT_PLACE);
+  return $tokens;
+  }
+  if ($type == 'node' && $node->type == 'family_group') {
+    $node = $object;
+  $tokens['family-group-uniontype'] = check_plain($node->MARR_TYPE);
+  $tokens['family-group-unionplace'] = check_plain($node->MARR_PLAC);
+  $tokens['family-group-uniondate'] = check_plain($node->MARR_DATE);
+  $tokens['family-group-parent1'] = check_plain($node->PAR1);
+  $tokens['family-group-parent2'] = check_plain($node->PAR2);
+  return $tokens;
+  }
+}
+
+/**
+* Implementation of hook_block().
+*
+* Displays siblings of a Family Individual
+*/
+function family_block($op = 'list', $delta = 0) {
+  switch ($op) {
+    case 'list':
+      $block[0]['info'] = t('Family: Siblings of Individual');
+      return $block;
+
+    case 'view':
+      if (user_access('access family nodes')) {
+        switch ($delta) {
+          case 0:
+            if (arg(0)=='node' && is_numeric(arg(1))) {
+              $indiv = family_tree_get_info(arg(1));
+              $fam = db_fetch_array(db_query("SELECT g.* FROM {family_group} g, {family_individual} i WHERE (g.nid=i.ancestor_group AND i.nid='%d')", $indiv['nid']));
+              if ($fam) {
+                $father = $fam['parent1'];
+                $mother = $fam['parent2'];
+                $items = array();
+                $block['subject'] = t('Siblings');
+                $families = db_query("SELECT * FROM {family_group} WHERE ((parent1='%d' AND parent1<>'') OR (parent2='%d' AND parent2<>''))", $father, $mother);
+                if ($families) {
+                  while ($family=db_fetch_array($families)) {
+                    if ($result=db_query("SELECT * FROM {family_individual} WHERE ancestor_group=%d AND nid!=%d order by birthdate", $family['nid'], $indiv['nid'])) {
+                      while ($sibling=db_fetch_array($result)) {
+                        $items[] = family_make_name($sibling['nid'], TRUE) . ' (b: ' . $sibling['birthdate'] . ')';
+                      }
+                    }
+                  }
+                  $block['content'] = theme_item_list($items);
+                }
+              }
+            }
+            break;
+        }
+      }
+      return $block;
+  }
+}

@@ -1,0 +1,255 @@
+<?php
+// $Id: family.install,v 1.6 2010/03/04 13:20:32 jerdiggity Exp $
+
+/* ---------------------------------
+-- FAMILY_INDIVIDUAL
+-- vid: vocabulary id? (PRIMARY)
+-- nid: node id (PRIMARY)
+-- title_format: contains the specified format for concetenating tokens
+-- firstname: the individual's first name
+-- middlename: the individual's middle name
+-- lastname: the individual's birth surname
+-- gender: acceptable values are M or F or ?
+-- birthdate: the individual's date of birth
+-- birthplace: the individual's place of birth (This will eventually be a reference to the location node)
+-- deathdate: the individual's date of death
+-- deathplace: the individual's place of death (This will eventually be a reference to the location node)
+-- children_num: the number of children that an individual has (this is be a stored calculation, so it doesn't have to be figured every time the node is viewed)
+-- ancestor_group: the family an individual is a child of (This will eventually be a reference to the group node)
+-- descendent_group: NOT A FIELD - Identified by querying GROUP node's 'parent1' and 'parent2' fields for a match.
+-- media: a picture, video or audio of the individual (This will eventually store a list of all media that link to the individual node)
+
+-- FAMILY_GROUP
+-- vid: vocabulary id? (PRIMARY)
+-- nid: node id (PRIMARY)
+--title_format: contains the specified format for concetenating tokens
+--marr_type: The type of union between parents (Currently only accepts unmarried and religious)
+--marr_date: Date of declared union if any
+--marr_plac: The place of union if any official partnership was declared
+--div_date: Date the union was nullified.
+--div_plac: Location of nullification the union (could be a courthouse, or just the place the couple was living at the time)
+--parent1: Parent of the family (Gender neutral field.  Will be a referral to an individual node, containing that node's nid)
+--parent2: Parent of the family (Gender neutral field.  Will be a referral to an individual node, containing that node's nid)
+-- media: a picture, video or audio of the group (This will eventually store a list of all media that link to the individual node)
+--CHILDREN of a group are identified by querying an INDIVIDUAL node's 'ancestor_group' field for a match.
+
+FAMILY_LOCATION
+-- vid: vocabulary id? (PRIMARY)
+-- nid: node id (PRIMARY)
+--title_format: contains the specified format for concetenating tokens
+--building: If the location is not a residence, the name of the location (i.e. Springfield County Courthouse)
+--street: Street address
+--city: Name of the city
+--county: Name of county if one exists
+--state_province: Name of state or province
+--country: Name of country
+-- media: a picture, video or audio of the location (This will eventually store a list of all media that link to the individual node)
+
+FAMILY_VARIABLE
+-- name: Name of the family module variable being stored.
+-- variable: Value of the variable being stored.
+------------------------------------ */
+
+/**
+ * Implementation of hook_install().
+ */
+function family_install() {
+   drupal_install_schema('family');
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function family_schema() {
+  $schema['family_individual'] = array(
+    'fields' => array(
+      'vid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'nid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'title_format' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+      ),
+      'firstname' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'middlename' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'lastname' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'gender' => array(
+         'type' => 'varchar', // Needs to be changed to SET
+         'length' => 2,
+         'not null' => FALSE,
+         'default' => '?',
+      ),
+      'birthdate' => array(
+         'type' => 'datetime',  // This creates a datetime format not date
+         'not null' => FALSE,
+      ),
+      'birthplace' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'deathdate' => array(
+         'type' => 'datetime',  // This creates a datetime format not date
+         'not null' => FALSE,
+      ),
+      'deathplace' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'children_num'    => array(
+         'type' => 'int',
+         'unsigned' => TRUE,
+         'not null' => FALSE,
+         'default' => 0
+      ),
+      'ancestor_group' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'media' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'None',
+      ),
+      'privacy'    => array(
+         'type' => 'int',   // Was SET but doesn't nessacerily need to be changed
+         'unsigned' => TRUE,
+         'not null' => TRUE,
+         'default' => 0
+      ),
+    ),
+    'indexes' => array(
+      'nid'    => array('nid'),
+    ),
+    'unique keys' => array(
+      'nid_vid' => array('nid', 'vid'),
+      'vid'     => array('vid')
+    ),
+    'primary key' => array('nid'),
+  );
+  $schema['family_group'] = array(
+    'fields' => array(
+      'vid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'nid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'title_format' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+      ),
+      'marr_type' => array(
+         'type' => 'varchar', // Needs to be changed to SET
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'marr_date' => array(
+         'type' => 'datetime',  // This creates a datetime format not date
+         'not null' => FALSE,
+      ),
+      'marr_plac' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'div_date' => array(
+         'type' => 'datetime',  // This creates a datetime format not date
+         'not null' => FALSE,
+      ),
+      'div_plac' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'parent1' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'parent2' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'Unknown',
+      ),
+      'media' => array(
+         'type' => 'varchar',
+         'length' => 128,
+         'not null' => FALSE,
+         'default' => 'None',
+      ),
+    ),
+    'indexes' => array(
+      'nid'    => array('nid'),
+    ),
+    'unique keys' => array(
+      'nid_vid' => array('nid', 'vid'),
+      'vid'     => array('vid')
+    ),
+    'primary key' => array('nid'),
+  );
+  $schema['family_location'] = array(
+    'fields' => array(
+      'vid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'nid'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'title_format'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE),
+      'building'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE),
+      'street'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE, 'default' => 'Unknown'),
+      'city'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE, 'default' => 'Unknown'),
+      'county'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE),
+      'state_province'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE),
+      'country'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE, 'default' => 'Unknown'),
+      'related_group'    => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE),
+      'media'    => array('type' => 'varchar', 'length' => 128, 'not null' => FALSE, 'default' => 'None'),
+    ),
+    'indexes' => array(
+      'nid'    => array('nid'),
+    ),
+    'unique keys' => array(
+      'nid_vid' => array('nid', 'vid'),
+      'vid'     => array('vid')
+    ),
+    'primary key' => array('nid'),
+
+  );
+  $schema['family_variable'] = array(
+    'fields' => array(
+       'name'    => array('type' => 'varchar', 'length' => 128, 'not null' => TRUE),
+       'variable'    => array('type' => 'text', 'size' => 'big', 'not null' => FALSE),
+    ),
+    'primary key' => array('name'),
+
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function family_uninstall() {
+  drupal_uninstall_schema('family');
+}

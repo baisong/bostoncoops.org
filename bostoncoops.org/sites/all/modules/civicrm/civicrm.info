@@ -1,0 +1,12 @@
+name = CiviCRM
+description = Constituent Relationship Management CRM - v2.2. Allows sites to manage contacts, relationships and groups, and track contact activities, contributions, memberships and events. 
+version = 2.2
+package = CiviCRM
+core = 6.x
+php = 5.2
+; Information added by drupal.org packaging script on 2009-06-17
+version = "6.x-1.0"
+core = "6.x"
+project = "civicrm"
+datestamp = "1245263442"
+

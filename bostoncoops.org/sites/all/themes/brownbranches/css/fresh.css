@@ -1,0 +1,156 @@
+.region-sidebar-first {
+width: 240px !important;
+margin-right: -240px !important;
+background:#DDf8CC;
+}
+
+.region-sidebar-first .section {
+margin: 0 10px 0 10px !important;
+padding: 0;
+}
+
+.sidebar-first #content {
+width: 700px !important;
+margin-left: 250px !important;
+margin-right: -960px;
+}
+
+#content p img {padding-left:10px;}
+
+.no-sidebars #content .section {padding:0px 10px;}
+.region-sidebar-first .section .block .content{
+padding-left: 10;
+}
+
+body {background:green url(../images/bg.jpg) top left repeat;font-family:"Droid Sans","MS Trebuchet",Verdana}
+/*#page {background:transparent url(../images/semiwhite.png) top left repeat;}*/
+#page {background:white;margin-top:20px;margin-bottom:10px;padding-bottom:1px;}
+
+/* modifications by Oren Robinson get.oren@gmail.com -------------------80cols*/
+/* general & #id mods --------------------------------------------------80cols*/
+/* in order of appearance on page.tpl.php ------------------------------80cols*/
+
+#navigation {
+background:#520;
+padding-top: 15px;
+height: 25px;
+}
+
+#navigation ul {
+margin:0px 10px;
+}
+
+#navigation a {
+font-family:"Maiden Orange";
+text-transform:uppercase;
+color:white;
+text-decoration:none;
+font-weight:bold;
+font-size:1.8em;
+}
+
+#navigation a:hover {
+color: #a95;
+}
+#navigation li {
+float: left;
+padding: 0 25px 0 0;
+}
+
+#site-slogan, #site-name {
+	float:left;
+	width:700px;
+}
+
+#site-name a:link, #site-name a:visited {
+  color: green;
+  text-transform:uppercase;
+  font-family:"Maiden Orange";
+  font-size:2em;
+}
+
+#site-name {
+margin-top:10px;
+}
+
+#name-and-slogan {
+	padding:10px 10px 0px;
+}
+
+#site-slogan {
+  font-size: 1.2em;
+  color: #520;
+  font-weight: bold;
+}
+
+#header #search {
+	margin-top:68px;
+	margin-left:10px;
+}
+
+#content p, #googlegroup p {
+  text-indent: 36px;
+}
+#footer {
+  width: auto;
+  color: #aa9955;
+  font-size: 0.9em;
+  font-family: "Trebuchet MS",Helvetica,Verdana,Sans-serif;
+  font-style: oblique;
+  margin: 10px;
+}
+
+a:link {
+  color: green;
+}
+
+/* form & .class mods --------------------------------------------------80cols*/
+
+h1, h2, h3 {
+  color: green;
+}
+h3.num1 {
+  background: url('../images/leaf1.png') 24px 0px;
+}
+h3.num2 {
+  background: url('../images/leaf2.png') 72px 0px;
+}
+h3.num3 {
+  background: url('../images/leaf3.png') 108px 0px;
+}
+
+h3.num1, h3.num2, h3.num3 {
+  padding-top: 20px;
+  color: #a95;
+  background-color:transparent;
+  background-repeat:no-repeat;
+}
+
+.logoright {
+  float: right;
+  clear:none;
+  margin-bottom:10px;
+}
+form {
+  font-size: 1.2em;
+  color: #520;
+  font-weight: heavy;
+}
+.form-submit {
+  border: 0px;
+  background-color: green;
+  color: #fff;
+  font-size: 1.1em;
+  height: 1.5em;
+  vertical-align: middle;
+}
+
+div#site-name {
+	margin-top:10px !important;
+}
+
+.with-navigation #content, .with-navigation .region-sidebar-first, .with-navigation .region-sidebar-second {
+margin-top: 40px;padding-top:6px;
+}
+
+/* end modifications by Oren Robinson get.oren@gmail.com ---------------80cols*/

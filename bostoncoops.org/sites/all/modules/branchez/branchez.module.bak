@@ -1,0 +1,57 @@
+<?php
+// $Id$
+ 
+/**
+ * @file
+ * Drupal Module: mysite
+ * Adds custom code specific to this Drupal 6 site.
+ */
+
+/**
+ * Simplifying forms through HOOK_form_alter
+
+function brachez_form_alter(&$form, &$form_state, $form_id) {
+  print_r("food is good");
+  drupal_set_message("Loaded!");
+  drupal_set_message($form_id);
+  switch ($form_id) {
+    case 'blog_node_form':
+      // remove some unwanted node editing fields
+      $form['revision_information']['#access'] = 0;
+      $form['menu']['#access'] = 0;
+      $form['author']['#access'] = 0;
+      // override node options permissions defined by 'administer nodes'
+      $form['options']['#access'] = 1;
+      $form['options']['status']['#access'] = 1;
+      $form['options']['promote']['#access'] = 0;
+      $form['options']['sticky']['#access'] = 0;
+    break;
+    case 'page_node_form':
+      // don't ever allow page nodes to be promoted or sticky
+      $form['options']['promote']['#access'] = 0;
+      $form['options']['sticky']['#access'] = 0;
+    break;
+    case 'community_node_form':
+      // remove membership options, set to moderated.
+      $form['og-selective']['#access'] = 0;
+      //$form['edit-og-selective-1']['#access'] = 0;
+      //$form['edit-og-selective-2']['#access'] = 0;
+      //$form['edit-og-selective-3']['#access'] = 0;
+      //$form['options']['sticky']['#access'] = 0;
+    break;
+    case 'user_register':
+  		$form['buttons']['submit'] = array
+  		(
+			'#type' => 'submit',
+			'#id' => 'confirm_submit',
+			'#value' => t("Start branching out!"),
+		);
+    break;
+  }
+} */
+
+function branchez_form_alter(&$form, $form_state, $form_id) {
+  drupal_set_message("Form ID is : " . $form_id);
+  //drupal_set_message(print_R($form, TRUE));
+
+}

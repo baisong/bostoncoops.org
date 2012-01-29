@@ -1,0 +1,13 @@
+; $Id: family.info,v 1.6 2010/03/04 13:20:32 jerdiggity Exp $
+name = Family Tree
+description = An easy-to-use but extensive family tree for your Drupal website.
+core = 6.x
+dependencies[] = token
+dependencies[] = views
+
+; Information added by drupal.org packaging script on 2010-03-04
+version = "6.x-1.2"
+core = "6.x"
+project = "family"
+datestamp = "1267709707"
+
