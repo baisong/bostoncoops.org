@@ -1,0 +1,16 @@
+.breadcrumb { display:none;}
+legend {padding-left:10px;color:white;background-color:#007fcf;}
+.imagecache-100px_square img {max-height:auto;max-width:auto;}
+
+td.coop-thumb {
+  margin:0;
+  padding:0;
+  width:48px;
+}
+
+td.coop-name {
+  margin:0;
+  padding:0;
+  padding-left:12px;
+  width:114px;
+}
