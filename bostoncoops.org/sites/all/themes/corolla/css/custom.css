@@ -14,3 +14,13 @@ td.coop-name {
   padding-left:12px;
   width:114px;
 }
+
+.view-Community tr,
+.view-Community tr.even,
+.view-Community tr.odd {
+  border: 0 none;
+}
+
+a {
+  border-bottom: 0 !important;
+}
